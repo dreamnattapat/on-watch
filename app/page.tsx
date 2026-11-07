@@ -1,14 +1,18 @@
 import Link from 'next/link';
 import { SignUpForm } from '@/components/AuthForms';
 import { authEnabled, env } from '@/lib/config';
+import { StockSearch } from '@/components/StockSearch';
+import { EXTRA_POPULAR } from '@/lib/popular';
 
-export default function Landing() {
+export default async function Landing({ searchParams }: { searchParams: Promise<{ ticker?: string }> }) {
+  const raw = (await searchParams).ticker?.toUpperCase() ?? '';
+  const from = /^[A-Z][A-Z.]{0,5}$/.test(raw) ? raw : '';
   return (
     <div className="wrap" style={{ maxWidth: 1180 }}>
       <header className="masthead" style={{ borderBottom: '3px double var(--ink)' }}>
         <Link href="/" className="logo" style={{ fontSize: 52 }}>OnWatch</Link>
         <div className="right">
-          <span className="label">100% free · No credit card</span>
+          <Link href="/stock" className="bold" style={{ fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>Stocks</Link>
           <Link href="/login" className="btn">Log in</Link>
         </div>
       </header>
@@ -17,7 +21,7 @@ export default function Landing() {
       )}
       <div className="cols" style={{ gap: 48, paddingTop: 32 }}>
         <section aria-labelledby="pitch" className="stack" style={{ flex: '1 1 380px', minWidth: 0, gap: 18 }}>
-          <div className="kicker">Free for everyone</div>
+          <div className="kicker">{from ? `Track ${from} and everything else you own` : '100% free · No credit card'}</div>
           <h1 id="pitch" className="head" style={{ fontSize: 'clamp(42px, 6vw, 64px)', lineHeight: 0.92 }}>Stop scrolling five apps to understand your stocks</h1>
           <p className="lede" style={{ fontSize: 18 }}>We read the news, filings and social chatter overnight, then tell you only what matters to the stocks you own.</p>
           <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -43,6 +47,16 @@ export default function Landing() {
           <SignUpForm enableApple={env.enableApple} />
         </div>
       </div>
+      <section aria-labelledby="lookup" className="stack" style={{ gap: 12, marginTop: 40, paddingTop: 20, borderTop: '3px double var(--ink)' }}>
+        <h2 id="lookup" className="head" style={{ fontSize: 30 }}>Or just look up a stock, no account needed</h2>
+        <StockSearch />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {['NVDA', 'AAPL', 'TSLA', ...EXTRA_POPULAR.slice(0, 9)].map((t) => (
+            <Link key={t} href={`/stock/${t}`} className="preset" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontWeight: 800 }}>{t}</Link>
+          ))}
+          <Link href="/stock" className="bold" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 40, padding: '0 6px' }}>All stocks →</Link>
+        </div>
+      </section>
       <footer className="footer">
         <span>OnWatch gives information, not investment advice.</span>
         <span><Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link></span>

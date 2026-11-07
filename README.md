@@ -18,7 +18,7 @@ You'll create three free accounts: **Supabase** (logins + database), **Finnhub**
 ### 1. Supabase: accounts and saved portfolios
 
 1. Go to [supabase.com](https://supabase.com), sign up, and click **New project**. Pick the Singapore region (closest to Thailand) and save the database password somewhere safe.
-2. When it's ready, open **SQL Editor → New query**, paste everything from `supabase/migrations/0001_init.sql`, and click **Run**. This creates the tables and the security rules.
+2. When it's ready, open **SQL Editor → New query**, paste everything from `supabase/migrations/0001_init.sql`, and click **Run**. This creates the tables and the security rules. Then do the same with `0002_email.sql` (email subscribers and unsubscribe links).
 3. Open **Project Settings → API Keys** and copy:
    - the **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
    - the **publishable key** → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
@@ -47,6 +47,10 @@ You'll create three free accounts: **Supabase** (logins + database), **Finnhub**
 |---|---|---|
 | `ANTHROPIC_API_KEY` | AI-written "why it moved" summaries instead of rule-based ones | [console.anthropic.com](https://console.anthropic.com) → API Keys. Summaries are made **once per stock per day** and shared, so the cost depends on how many different stocks people hold, not how many users you have. |
 | `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | Crowd mood from r/stocks, r/wallstreetbets, r/investing and r/StockMarket | [reddit.com/prefs/apps](https://www.reddit.com/prefs/apps) → create app → type **script**. |
+| `RESEND_API_KEY` + `EMAIL_FROM` | The daily email brief, sign-up confirmations, and the "Email me a test brief" button in Settings | Sign up at [resend.com](https://resend.com), add and verify your domain (a few DNS records), then create an API key. Until a domain is verified, Resend only delivers to your own login email. |
+| `SPONSOR_TEXT` + `SPONSOR_URL` | A one-line "Sponsored" slot in every brief | e.g. `SPONSOR_TEXT=Trade US stocks with zero commission at …` |
+| Vercel Web Analytics | Page views, top pages, where visitors come from | Vercel project → **Analytics** → **Enable**. The code is already in place. |
+| Google Search Console | Get the public stock pages into Google | [search.google.com/search-console](https://search.google.com/search-console) → add your site → **Sitemaps** → submit `sitemap.xml`. |
 | `data/events.json` | Market-wide events (Fed meetings, CPI…) in "The week ahead" | Add entries like `{"date":"2026-12-09","title":"Fed rate decision","impact":"High","why":"…","affects":"All your stocks"}`. Earnings dates are added automatically. |
 
 ---
@@ -72,13 +76,19 @@ app/                    Pages (Next.js App Router)
   (app)/screener        Filters and sorting over the stock universe
   (app)/settings        Manage stocks and brief preferences
   api/movers            Live movers, polled every 30s (cached server-side)
+  stock/[ticker]        Public, search-friendly analysis page for any US stock (+ share image)
+  stock/                Public stock directory and search
+  sitemap.ts, robots.ts For search engines
   api/cron/daily        Daily job: writes shared "why it moved" summaries
+  api/cron/brief        Morning email: members get their portfolio, subscribers their stocks
+  subscribe/, unsubscribe/  Double opt-in and one-click unsubscribe
 lib/
   market/               Finnhub provider, price history (Yahoo/Stooq), demo data
   analysis/             valuation.ts, stage.ts, riskReward.ts, fearGreed.ts
   whyMoved.ts           Rule-based and AI explanations
   sentiment.ts          Reddit crowd mood
   brief.ts              Picks the headline and stories for each person
+  email.ts, emailBrief.ts  Resend sending and the email templates
   data.ts               Puts it all together for the pages
 supabase/migrations/    Database tables and row-level security
 proxy.ts                Keeps sessions fresh and protects app pages
@@ -113,10 +123,14 @@ If a method has no data, its weight is shared among the others. Price more than 
 | Vercel (Hobby) | Personal, non-commercial projects. Move to Pro ($20/month) if you add ads or sponsorships. |
 | Finnhub | 60 calls/minute. Upgrade if many people hold many different stocks. |
 | Anthropic (optional) | Pay-as-you-go. Roughly cents per stock per day with a small model. |
+| Resend (optional) | 3,000 emails a month, 100 a day. Pro is $20/month for 50,000. |
+| Vercel Web Analytics | 50,000 events a month on Hobby. |
+
+**Before you earn money from the site:** move Vercel to Pro, and check the market-data licence. Finnhub's free key is for personal use; showing its data on public pages for a business needs a commercial plan.
 
 ## Not done yet (next steps)
 
-- **Sending the brief** by email (e.g. with Resend) or LINE. Settings are already saved per person.
+- **Brief by LINE or phone notification.** Email works today (once a day, 6–7 AM Bangkok time on Vercel's free plan; per-person send times need Vercel Pro).
 - **X, Facebook and Instagram** mood: these need paid or partner API access. Reddit works today.
 - **Economic calendar** (Fed, CPI): add dates to `data/events.json` until a data source is chosen.
 - **Legal review** of the Terms and Privacy pages (they are drafts), including Thailand's PDPA and SEC rules on investment advice.

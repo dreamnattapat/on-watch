@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { STOCK_TYPES, type Reading } from '@/lib/analysis/valuation';
 import { money, num, pct, tone } from '@/lib/format';
@@ -122,7 +123,7 @@ export function Screener({ rows }: { rows: ScreenRow[] }) {
           <tbody>
             {shown.map((r) => (
               <tr key={r.ticker}>
-                <td style={{ paddingTop: 10, paddingBottom: 10 }}><span className="heavy">{r.ticker}{r.mine ? ' ★' : ''}</span><div className="small">{r.name} · {r.type}</div></td>
+                <td style={{ paddingTop: 10, paddingBottom: 10 }}><Link href={`/stock/${r.ticker}`} className="heavy" style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>{r.ticker}</Link>{r.mine ? ' ★' : ''}<div className="small">{r.name} · {r.type}</div></td>
                 <td>{money(r.price)}</td>
                 <td>{r.pe != null && r.pe > 0 ? num(r.pe) : '—'}</td>
                 <td>{r.peg != null && r.peg > 0 ? num(r.peg) : '—'}</td>

@@ -74,7 +74,7 @@ function EarningsSection({ s }: { s: StockAnalysis }) {
   );
 }
 
-function Detail({ s, holding }: { s: StockAnalysis; holding?: Holding }) {
+export function StockDetail({ s, holding }: { s: StockAnalysis; holding?: Holding }) {
   const v = s.valuation;
   const price = s.quote?.price ?? 0;
   let lo = 0, hi = 1;
@@ -337,7 +337,7 @@ export function StockList({ stocks, holdings, initialOpen }: { stocks: StockAnal
               </span>
               <span className="chev" aria-hidden="true">{isOpen ? '−' : '+'}</span>
             </button>
-            {isOpen && <Detail s={s} holding={h} />}
+            {isOpen && <StockDetail s={s} holding={h} />}
           </div>
         );
       })}

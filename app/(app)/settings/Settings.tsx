@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { HoldingsEditor } from '@/components/HoldingsEditor';
 import { PrefsFields } from '@/components/PrefsFields';
 import { addHolding, removeHolding, savePrefs, type HoldingInput, type Prefs } from '@/app/portfolio-actions';
+import { sendTestBrief } from '@/app/email-actions';
 import type { Holding, Profile } from '@/lib/portfolio';
 
 export function Settings({ holdings, profile, demo }: { holdings: Holding[]; profile: Profile | null; demo: boolean }) {
@@ -21,6 +22,8 @@ export function Settings({ holdings, profile, demo }: { holdings: Holding[]; pro
   });
   const [msg, setMsg] = useState<{ ok?: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const [testMsg, setTestMsg] = useState<{ ok?: boolean; text: string } | null>(null);
+  const [testing, startTest] = useTransition();
 
   return (
     <>
@@ -63,6 +66,24 @@ export function Settings({ holdings, profile, demo }: { holdings: Holding[]; pro
         >
           {pending ? 'Saving…' : 'Save settings'}
         </button>
+        {!demo && (
+          <div className="stack" style={{ gap: 8, borderTop: '1px solid var(--rule)', paddingTop: 14 }}>
+            <p className="small" style={{ fontSize: 13 }}>See what the morning email looks like, built from your stocks right now.</p>
+            {testMsg && <div role="status" className={testMsg.ok ? 'success' : 'error'}>{testMsg.text}</div>}
+            <button
+              type="button"
+              className="btn"
+              style={{ alignSelf: 'flex-start' }}
+              disabled={testing}
+              onClick={() => startTest(async () => {
+                const r = await sendTestBrief();
+                setTestMsg(r.message ? { ok: true, text: r.message } : { text: r.error ?? 'Something went wrong.' });
+              })}
+            >
+              {testing ? 'Sending…' : 'Email me a test brief'}
+            </button>
+          </div>
+        )}
       </section>
     </>
   );

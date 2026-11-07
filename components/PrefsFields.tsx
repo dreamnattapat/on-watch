@@ -28,6 +28,7 @@ export function PrefsFields({ value, onChange }: { value: Prefs; onChange: (p: P
         <select id="pref-time" className="select" value={value.briefTime} onChange={(e) => set('briefTime', e.target.value)}>
           {TIMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
+        <p className="small" style={{ fontSize: 12.5 }}>For now every brief goes out once a day, between 6 and 7 AM Bangkok time, Tuesday to Saturday (after each US session). We’ll use your chosen time once more send times open up.</p>
       </div>
       <fieldset style={{ margin: 0, padding: 0, border: 'none' }}>
         <legend className="bold" style={{ fontSize: 13, paddingBottom: 6 }}>Alert me when</legend>

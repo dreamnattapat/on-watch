@@ -8,8 +8,7 @@ import { riskReward, type RiskReward } from './analysis/riskReward';
 import { fearGreed, fearGreedAt, type FearGreed } from './analysis/fearGreed';
 import { getMood, type Mood } from './sentiment';
 import { ruleBasedWhy, type WhyMoved } from './whyMoved';
-import { createAdminClient, createClient } from './supabase/server';
-import { authEnabled } from './config';
+import { createAdminClient } from './supabase/server';
 import { isoDate, median } from './format';
 import type { Holding } from './portfolio';
 import events from '../data/events.json';
@@ -132,11 +131,12 @@ export interface StockAnalysis {
   industry: string;
 }
 
-async function savedWhy(ticker: string, day: string): Promise<WhyMoved | null> {
-  if (!authEnabled) return null;
-  const supabase = await createClient();
-  if (!supabase) return null;
-  const { data } = await supabase.from('stock_daily').select('why').eq('ticker', ticker).eq('day', day).maybeSingle();
+export async function savedWhy(ticker: string, day: string): Promise<WhyMoved | null> {
+  // Shared, non-personal summaries: read with the server key so public stock
+  // pages don't depend on a signed-in user (and can be cached).
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const { data } = await admin.from('stock_daily').select('why').eq('ticker', ticker).eq('day', day).maybeSingle();
   return (data?.why as WhyMoved | undefined) ?? null;
 }
 
@@ -286,6 +286,19 @@ export async function getWeekAhead(tickers: string[]): Promise<WeekEvent[]> {
 export async function heldTickers(): Promise<string[]> {
   const admin = createAdminClient();
   if (!admin) return [];
-  const { data } = await admin.from('holdings').select('ticker');
-  return [...new Set((data ?? []).map((r) => r.ticker as string))];
+  const [{ data }, { data: subs }] = await Promise.all([
+    admin.from('holdings').select('ticker'),
+    admin.from('subscribers').select('tickers').eq('confirmed', true).eq('unsubscribed', false),
+  ]);
+  const fromSubs = (subs ?? []).flatMap((r) => (r.tickers as string[] | null) ?? []);
+  return [...new Set([...(data ?? []).map((r) => r.ticker as string), ...fromSubs])];
+}
+
+/** Analyze one stock on its own (for public pages). Returns null for unknown tickers. */
+export async function analyzeOne(ticker: string): Promise<StockAnalysis | null> {
+  const profile = await market.getProfile(ticker);
+  if (!profile) return null;
+  const universe = await getUniverse();
+  const [s] = await analyzeHoldings([{ ticker, shares: null, avgCost: null }], universe);
+  return s.quote ? s : null;
 }
