@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { cleanSupabaseUrl } from './lib/config';
 
 // Refreshes the Supabase session on each request and keeps signed-out
 // visitors out of the app pages. Does nothing when Supabase isn't configured
@@ -8,7 +9,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 const APP_PATHS = ['/today', '/stocks', '/screener', '/settings', '/onboarding'];
 
 export async function proxy(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = cleanSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return NextResponse.next({ request });
 

@@ -164,3 +164,12 @@ describe('why it moved (rules)', () => {
     expect(w.drivers[0].title).toBe('No clear news');
   });
 });
+
+import { cleanSupabaseUrl } from '../lib/config';
+describe('config', () => {
+  it('cleans Supabase URLs copied from the dashboard', () => {
+    expect(cleanSupabaseUrl('https://abc.supabase.co/rest/v1/')).toBe('https://abc.supabase.co');
+    expect(cleanSupabaseUrl(' https://abc.supabase.co/ ')).toBe('https://abc.supabase.co');
+    expect(cleanSupabaseUrl('https://abc.supabase.co')).toBe('https://abc.supabase.co');
+  });
+});

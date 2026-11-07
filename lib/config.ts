@@ -2,8 +2,16 @@
 // Every external service is optional: when a key is missing, that part of the
 // app falls back to demo data so the site still runs end to end.
 
+/**
+ * Supabase's dashboard shows several URLs (e.g. ".../rest/v1/"). The client
+ * needs the bare project URL, so strip any API path and trailing slashes.
+ */
+export function cleanSupabaseUrl(raw: string | undefined): string {
+  return (raw ?? '').trim().replace(/\/+$/, '').replace(/\/(rest|auth|storage|realtime)\/v1$/i, '').replace(/\/+$/, '');
+}
+
 export const env = {
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+  supabaseUrl: cleanSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL),
   supabasePublishableKey:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
   supabaseSecretKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
