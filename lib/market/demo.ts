@@ -1,4 +1,4 @@
-import type { Bar, CompanyProfile, EarningsEvent, MarketProvider, Metrics, NewsItem, Quote, RecommendationTrend } from './types';
+import type { Bar, CompanyProfile, EarningsEvent, EarningsResult, MarketProvider, Metrics, NewsItem, Quote, RecommendationTrend } from './types';
 import { EMPTY_METRICS } from './types';
 import { isoDate } from '../format';
 
@@ -180,6 +180,28 @@ export const demoProvider: MarketProvider = {
     { ticker: 'NVDA', date: nextWeekday(4), hour: 'amc' },
     { ticker: 'WMT', date: nextWeekday(5), hour: 'bmo' },
   ],
+  getNextEarnings: async (t): Promise<EarningsEvent | null> => {
+    const r = byTicker.get(t);
+    if (!r) return null;
+    const rnd = seeded(t + 'e');
+    const offset = t === 'NVDA' ? 4 : 5 + Math.floor(rnd() * 80);
+    const eps = r[4] / r[6] / 4;
+    return { ticker: t, date: nextWeekday(offset), hour: rnd() > 0.5 ? 'amc' : 'bmo', epsEstimate: Math.round(eps * 100) / 100, revenueEstimate: null, quarter: null, year: null };
+  },
+  getEarningsHistory: async (t): Promise<EarningsResult[]> => {
+    const r = byTicker.get(t);
+    if (!r) return [];
+    const rnd = seeded(t + 'h');
+    const eps = r[4] / r[6] / 4;
+    const now = new Date();
+    return [0, 1, 2, 3].map((i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 3 * (i + 1), 1);
+      const q = Math.floor(d.getMonth() / 3) + 1;
+      const est = Math.round(eps * (1 - i * 0.04) * 100) / 100;
+      const act = Math.round(est * (1 + (rnd() - 0.35) * 0.12) * 100) / 100;
+      return { period: isoDate(d), quarter: q, year: d.getFullYear(), actual: act, estimate: est, surprisePct: ((act - est) / est) * 100 };
+    });
+  },
   getRecommendation: async (): Promise<RecommendationTrend | null> => null,
   getWeekly: async (t) => demoWeekly(t),
   getDaily: async (t) => demoDaily(t),

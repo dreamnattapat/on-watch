@@ -6,6 +6,7 @@ import { STAGE_MEANING, STAGE_NAMES, type Stage } from '@/lib/analysis/stage';
 import { arrowPct, money, num, pct, signedMoney, timeAgo, tone } from '@/lib/format';
 import { Badge, VerdictBadge } from './ui';
 import type { Holding } from '@/lib/portfolio';
+import { bangkokTimeLabel, daysUntil, longDate, sessionLabel, shortDate, whenLabel } from '@/lib/earnings';
 
 const STAGE_PATHS: Record<Stage, string> = {
   1: 'M2 36 C 18 28, 34 42, 50 34 S 80 40, 98 32',
@@ -21,6 +22,55 @@ const CHECK_LABELS: Array<[keyof NonNullable<StockAnalysis['stage']>['checks'], 
 ];
 const READ_CLASS = { Under: 'under', Fair: 'fair', Over: 'over' } as const;
 const WEIGHT_CLASS = { 'Main driver': 'main', Contributing: 'contrib', Minor: 'minor' } as const;
+
+function EarningsSection({ s }: { s: StockAnalysis }) {
+  const e = s.nextEarnings;
+  const hist = s.earningsHistory.filter((h) => h.actual != null && h.estimate != null);
+  const beats = hist.filter((h) => (h.actual as number) >= (h.estimate as number)).length;
+  if (!e && !hist.length) return null;
+  const days = e ? daysUntil(e.date) : null;
+  const bkk = e ? bangkokTimeLabel(e) : null;
+  return (
+    <section>
+      <div className="kicker">Earnings</div>
+      {e ? (
+        <>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 12 }}>
+            <h2 className="head" style={{ fontSize: 30, lineHeight: 1 }}>{longDate(e.date)}</h2>
+            <span className={`badge ${days != null && days <= 7 ? 'high' : 'fair'}`}>{whenLabel(days ?? 99)}</span>
+          </div>
+          <p style={{ fontSize: 14 }}>
+            Reports {sessionLabel(e.hour)}{bkk ? <> (<span className="bold">{bkk}</span>)</> : null}.
+            {e.epsEstimate != null && <> Analysts expect earnings of <span className="bold">{money(e.epsEstimate)}</span> per share.</>}
+          </p>
+          {days != null && days <= 7 && <p className="callout">Earnings days often bring the biggest price swings of the quarter. Expect a bigger move than usual.</p>}
+        </>
+      ) : <p className="note">No earnings date announced yet.</p>}
+      {hist.length > 0 && (
+        <>
+          <p style={{ fontSize: 14 }}><span className="bold">Track record:</span> beat analysts’ estimates in {beats} of the last {hist.length} quarters.</p>
+          <table className="t">
+            <thead><tr><th>Quarter</th><th>Expected</th><th>Reported</th><th>Result</th></tr></thead>
+            <tbody>
+              {hist.map((h) => {
+                const beat = (h.actual as number) >= (h.estimate as number);
+                return (
+                  <tr key={h.period}>
+                    <th scope="row">Q{h.quarter} {h.year}</th>
+                    <td>{money(h.estimate)}</td>
+                    <td className="bold">{money(h.actual)}</td>
+                    <td><span className={`badge ${beat ? 'good' : 'poor'}`}>{beat ? 'Beat' : 'Miss'}{h.surprisePct != null ? ` ${pct(h.surprisePct)}` : ''}</span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="small">Earnings per share: what analysts expected vs. what the company reported.</p>
+        </>
+      )}
+    </section>
+  );
+}
 
 function Detail({ s, holding }: { s: StockAnalysis; holding?: Holding }) {
   const v = s.valuation;
@@ -55,6 +105,8 @@ function Detail({ s, holding }: { s: StockAnalysis; holding?: Holding }) {
           </ol>
           {s.why?.by === 'rules' && <p className="note">Summarised automatically from today’s news and market moves.</p>}
         </section>
+
+        <EarningsSection s={s} />
 
         {s.news.length > 0 && (
           <section>
@@ -216,6 +268,10 @@ export function StockList({ stocks, holdings, initialOpen }: { stocks: StockAnal
               </span>
               <span className="tags">
                 {s.mood && <Badge kind={s.mood.label.toLowerCase()}>{s.mood.label === 'Bullish' ? '▲' : s.mood.label === 'Bearish' ? '▼' : '–'} {s.mood.label}</Badge>}
+                {s.nextEarnings && (() => {
+                  const d = daysUntil(s.nextEarnings.date);
+                  return <Badge kind={d <= 7 ? 'high' : 'fair'}>Earnings {d <= 1 ? whenLabel(d).toLowerCase() : shortDate(s.nextEarnings.date)}</Badge>;
+                })()}
                 {s.stage && <Badge kind="fair">Stage {s.stage.stage}</Badge>}
                 <VerdictBadge v={s.valuation?.verdict ?? null} />
               </span>

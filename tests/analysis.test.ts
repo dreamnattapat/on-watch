@@ -173,3 +173,23 @@ describe('config', () => {
     expect(cleanSupabaseUrl('https://abc.supabase.co')).toBe('https://abc.supabase.co');
   });
 });
+
+import { bangkokTimeLabel, daysUntil, nyOffsetHours, whenLabel } from '../lib/earnings';
+describe('earnings dates', () => {
+  it('handles New York daylight saving', () => {
+    expect(nyOffsetHours('2026-07-15')).toBe(-4);
+    expect(nyOffsetHours('2026-12-15')).toBe(-5);
+  });
+  it('converts after-close reports to Bangkok early morning', () => {
+    // 4 PM in New York (UTC-5) on Nov 19 = 4 AM on Nov 20 in Bangkok.
+    expect(bangkokTimeLabel({ date: '2026-11-19', hour: 'amc' })).toBe('Fri 20 Nov, around 4:00 AM Bangkok time');
+    expect(bangkokTimeLabel({ date: '2026-11-19', hour: 'bmo' })).toBe('Thu 19 Nov, around 8:00 PM Bangkok time');
+    expect(bangkokTimeLabel({ date: '2026-11-19', hour: '' })).toBeNull();
+  });
+  it('counts days and labels them', () => {
+    expect(daysUntil('2026-11-10', new Date('2026-11-08T05:00:00Z'))).toBe(2);
+    expect(whenLabel(0)).toBe('Today');
+    expect(whenLabel(1)).toBe('Tomorrow');
+    expect(whenLabel(10)).toBe('Next week');
+  });
+});

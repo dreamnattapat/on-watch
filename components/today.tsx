@@ -3,6 +3,7 @@ import type { MarketOverview, PortfolioSummary, StockAnalysis, WeekEvent } from 
 import type { Brief } from '@/lib/brief';
 import { arrowPct, money, pct, signedMoney, tone } from '@/lib/format';
 import { Badge, VerdictBadge } from './ui';
+import { daysUntil, shortDate, whenLabel } from '@/lib/earnings';
 
 export function PortfolioPanel({ pf, stocks, spyPct, qqqPct }: { pf: PortfolioSummary; stocks: StockAnalysis[]; spyPct: number | null; qqqPct: number | null }) {
   const oneLine = [
@@ -41,9 +42,9 @@ export function PortfolioPanel({ pf, stocks, spyPct, qqqPct }: { pf: PortfolioSu
         <p className="small" style={{ fontSize: 14 }}>Add how many shares you own in <Link href="/settings">Settings</Link> to see your returns in dollars.</p>
       )}
       <div className="table-wrap">
-        <table className="t" style={{ minWidth: 640 }}>
+        <table className="t" style={{ minWidth: 740 }}>
           <thead>
-            <tr><th>Stock</th><th>Price</th><th>Today</th><th>Today’s return</th><th>Total return</th><th>Valuation</th></tr>
+            <tr><th>Stock</th><th>Price</th><th>Today</th><th>Today’s return</th><th>Total return</th><th>Next earnings</th><th>Valuation</th></tr>
           </thead>
           <tbody>
             {pf.rows.map((r) => {
@@ -58,6 +59,12 @@ export function PortfolioPanel({ pf, stocks, spyPct, qqqPct }: { pf: PortfolioSu
                   <td className={`heavy ${tone(r.changePct)}`}>{arrowPct(r.changePct)}</td>
                   <td className={`heavy ${tone(r.dayUsd)}`}>{signedMoney(r.dayUsd)}</td>
                   <td className={`heavy ${tone(r.totalUsd)}`}>{signedMoney(r.totalUsd)}{r.totalPct != null && <div style={{ fontSize: 12, fontWeight: 600 }}>{pct(r.totalPct)}</div>}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {s?.nextEarnings ? (() => {
+                      const d = daysUntil(s.nextEarnings.date);
+                      return <span className={d <= 7 ? 'down heavy' : ''}>{shortDate(s.nextEarnings.date)}<div className="small" style={{ fontWeight: 600 }}>{whenLabel(d)}</div></span>;
+                    })() : <span className="small">—</span>}
+                  </td>
                   <td><VerdictBadge v={s?.valuation?.verdict ?? null} /></td>
                 </tr>
               );

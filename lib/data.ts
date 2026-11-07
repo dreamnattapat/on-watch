@@ -1,5 +1,5 @@
 import { market, getQuotes } from './market';
-import type { Bar, CompanyProfile, Metrics, NewsItem, Quote } from './market/types';
+import type { Bar, CompanyProfile, EarningsEvent, EarningsResult, Metrics, NewsItem, Quote } from './market/types';
 import { SECTORS, UNIVERSE, UNIVERSE_TICKERS, sectorEtfFor } from './universe';
 import { valueStock, type PeerStats, type Valuation } from './analysis/valuation';
 import { analyzeStage, findSupport, type StageResult } from './analysis/stage';
@@ -104,6 +104,8 @@ export interface StockAnalysis {
   mood: Mood | null;
   why: WhyMoved | null;
   news: NewsItem[];
+  nextEarnings: EarningsEvent | null;
+  earningsHistory: EarningsResult[];
 }
 
 async function savedWhy(ticker: string, day: string): Promise<WhyMoved | null> {
@@ -116,13 +118,15 @@ async function savedWhy(ticker: string, day: string): Promise<WhyMoved | null> {
 
 export async function analyzeStock(ticker: string, universe: UniverseRow[], spyWeekly: Bar[], sectorChange: Map<string, number>, marketChangePct: number | null): Promise<StockAnalysis> {
   const fromUni = universe.find((r) => r.ticker === ticker);
-  const [quote, profile, metrics, weekly, news, mood] = await Promise.all([
+  const [quote, profile, metrics, weekly, news, mood, nextEarnings, earningsHistory] = await Promise.all([
     fromUni?.quote ?? market.getQuote(ticker),
     fromUni?.profile ?? market.getProfile(ticker),
     fromUni?.metrics ?? market.getMetrics(ticker),
     market.getWeekly(ticker),
     market.getCompanyNews(ticker, 3),
     getMood(ticker),
+    market.getNextEarnings(ticker),
+    market.getEarningsHistory(ticker),
   ]);
   const sector = profile ? sectorEtfFor(profile.industry) : null;
   const price = quote?.price ?? null;
@@ -143,7 +147,7 @@ export async function analyzeStock(ticker: string, universe: UniverseRow[], spyW
       });
     }
   }
-  return { ticker, name: profile?.name ?? ticker, quote, valuation, stage, support, rr, mood, why, news: news.slice(0, 3) };
+  return { ticker, name: profile?.name ?? ticker, quote, valuation, stage, support, rr, mood, why, news: news.slice(0, 3), nextEarnings, earningsHistory };
 }
 
 export async function analyzeHoldings(holdings: Holding[], universe: UniverseRow[]): Promise<StockAnalysis[]> {

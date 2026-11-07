@@ -1,5 +1,5 @@
 import type {
-  Bar, CompanyProfile, EarningsEvent, MarketProvider, Metrics, NewsItem, Quote, RecommendationTrend,
+  Bar, CompanyProfile, EarningsEvent, EarningsResult, MarketProvider, Metrics, NewsItem, Quote, RecommendationTrend,
 } from './types';
 import { EMPTY_METRICS } from './types';
 import { getDailyHistory, getWeeklyHistory } from './history';
@@ -132,6 +132,29 @@ export function createFinnhub(key: string): MarketProvider {
       const j = await get<{ earningsCalendar?: Array<{ symbol: string; date: string; hour: string }> }>(
         '/calendar/earnings', { from, to }, 21600, key);
       return (j?.earningsCalendar ?? []).map((e) => ({ ticker: e.symbol, date: e.date, hour: e.hour ?? '' } satisfies EarningsEvent));
+    },
+
+    async getNextEarnings(ticker) {
+      const today = isoDate(new Date());
+      const to = isoDate(new Date(Date.now() + 130 * 86400000));
+      const j = await get<{ earningsCalendar?: Array<{ symbol: string; date: string; hour: string; epsEstimate: number | null; revenueEstimate: number | null; quarter: number; year: number }> }>(
+        '/calendar/earnings', { from: today, to, symbol: ticker }, 21600, key);
+      const next = (j?.earningsCalendar ?? [])
+        .filter((e) => e.symbol === ticker && e.date >= today)
+        .sort((a, b) => a.date.localeCompare(b.date))[0];
+      if (!next) return null;
+      return {
+        ticker, date: next.date, hour: next.hour ?? '', epsEstimate: next.epsEstimate ?? null,
+        revenueEstimate: next.revenueEstimate ?? null, quarter: next.quarter ?? null, year: next.year ?? null,
+      };
+    },
+
+    async getEarningsHistory(ticker) {
+      const arr = await get<Array<{ actual: number | null; estimate: number | null; period: string; quarter: number; year: number; surprisePercent: number | null }>>(
+        '/stock/earnings', { symbol: ticker, limit: '4' }, 86400, key);
+      return (arr ?? []).slice(0, 4).map((e) => ({
+        period: e.period, quarter: e.quarter, year: e.year, actual: e.actual ?? null, estimate: e.estimate ?? null, surprisePct: e.surprisePercent ?? null,
+      } satisfies EarningsResult));
     },
 
     async getRecommendation(ticker) {

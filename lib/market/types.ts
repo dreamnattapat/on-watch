@@ -67,6 +67,20 @@ export interface EarningsEvent {
   date: string;
   /** "bmo" before market open, "amc" after market close, or "". */
   hour: string;
+  epsEstimate?: number | null;
+  revenueEstimate?: number | null;
+  quarter?: number | null;
+  year?: number | null;
+}
+
+/** One past quarter: what analysts expected vs. what the company reported. */
+export interface EarningsResult {
+  period: string;
+  quarter: number;
+  year: number;
+  actual: number | null;
+  estimate: number | null;
+  surprisePct: number | null;
 }
 
 export interface RecommendationTrend {
@@ -86,6 +100,10 @@ export interface MarketProvider {
   getCompanyNews(ticker: string, days: number): Promise<NewsItem[]>;
   getMarketNews(): Promise<NewsItem[]>;
   getEarnings(from: string, to: string): Promise<EarningsEvent[]>;
+  /** The next scheduled earnings report for one stock, if known. */
+  getNextEarnings(ticker: string): Promise<EarningsEvent | null>;
+  /** The last few reported quarters, newest first. */
+  getEarningsHistory(ticker: string): Promise<EarningsResult[]>;
   getRecommendation(ticker: string): Promise<RecommendationTrend | null>;
   /** About two years of weekly bars, oldest first. */
   getWeekly(ticker: string): Promise<Bar[]>;
