@@ -313,16 +313,18 @@ export function StockList({ stocks, holdings, initialOpen }: { stocks: StockAnal
     <div>
       {stocks.map((s) => {
         const isOpen = open === s.ticker;
-        const ch = s.quote?.changePct ?? null;
         const h = holdings.find((x) => x.ticker === s.ticker);
-        const dayUsd = s.quote && h?.shares != null ? (s.quote.price - s.quote.prevClose) * h.shares : null;
+        const totalUsd = s.quote && h?.shares != null && h.avgCost != null ? (s.quote.price - h.avgCost) * h.shares : null;
+        const totalPct = s.quote && h?.avgCost ? (s.quote.price / h.avgCost - 1) * 100 : null;
         return (
           <div key={s.ticker} className="stock" id={s.ticker}>
             <button type="button" className="stock-head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : s.ticker)}>
               <span className="who"><span className="tk">{s.ticker}</span><span className="small" style={{ fontSize: 13 }}>{s.name}</span></span>
               <span className="px">
                 <span className="bold num" style={{ fontSize: 18 }}>{money(s.quote?.price)}</span>
-                <span className={`heavy num ${tone(ch)}`} style={{ fontSize: 14 }}>{arrowPct(ch)}{dayUsd != null && <> · {signedMoney(dayUsd)}</>}</span>
+                {totalPct != null
+                  ? <span className={`heavy num ${tone(totalPct)}`} style={{ fontSize: 14 }}>{totalUsd != null && <>{signedMoney(totalUsd)} · </>}{arrowPct(totalPct)}<span className="small" style={{ fontWeight: 600 }}> total</span></span>
+                  : <span className="small">Add your cost to see total return</span>}
               </span>
               <span className="tags">
                 {s.mood && <Badge kind={s.mood.label.toLowerCase()}>{s.mood.label === 'Bullish' ? '▲' : s.mood.label === 'Bearish' ? '▼' : '–'} {s.mood.label}</Badge>}

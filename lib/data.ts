@@ -129,6 +129,7 @@ export interface StockAnalysis {
   earningsHistory: EarningsResult[];
   recommendation: RecommendationTrend | null;
   peerNames: string[];
+  industry: string;
 }
 
 async function savedWhy(ticker: string, day: string): Promise<WhyMoved | null> {
@@ -172,7 +173,7 @@ export async function analyzeStock(ticker: string, universe: UniverseRow[], spyW
       });
     }
   }
-  return { ticker, name: profile?.name ?? ticker, quote, valuation, stage, support, rr, mood, why, news: news.slice(0, 3), nextEarnings, earningsHistory, recommendation, peerNames: peerStats.names };
+  return { ticker, name: profile?.name ?? ticker, quote, valuation, stage, support, rr, mood, why, news: news.slice(0, 3), nextEarnings, earningsHistory, recommendation, peerNames: peerStats.names, industry: profile?.industry ?? '' };
 }
 
 export async function analyzeHoldings(holdings: Holding[], universe: UniverseRow[]): Promise<StockAnalysis[]> {

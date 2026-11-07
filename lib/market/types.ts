@@ -99,7 +99,8 @@ export interface RecommendationTrend {
 
 export interface MarketProvider {
   readonly name: string;
-  getQuote(ticker: string): Promise<Quote | null>;
+  /** Latest quote. `maxAgeSec` sets how stale a cached quote may be (default 60s). */
+  getQuote(ticker: string, maxAgeSec?: number): Promise<Quote | null>;
   getProfile(ticker: string): Promise<CompanyProfile | null>;
   getMetrics(ticker: string): Promise<Metrics | null>;
   getCompanyNews(ticker: string, days: number): Promise<NewsItem[]>;

@@ -96,8 +96,8 @@ export function createFinnhub(key: string): MarketProvider {
   return {
     name: 'finnhub',
 
-    async getQuote(ticker) {
-      const q = await get<{ c: number; d: number; dp: number; pc: number; t: number }>('/quote', { symbol: ticker }, 60, key);
+    async getQuote(ticker, maxAgeSec = 60) {
+      const q = await get<{ c: number; d: number; dp: number; pc: number; t: number }>('/quote', { symbol: ticker }, maxAgeSec, key);
       if (!q || !q.c) return null;
       return { ticker, price: q.c, prevClose: q.pc, change: q.d, changePct: q.dp, time: q.t } satisfies Quote;
     },

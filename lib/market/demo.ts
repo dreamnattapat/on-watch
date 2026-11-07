@@ -169,7 +169,14 @@ function nextWeekday(offset: number): string {
 
 export const demoProvider: MarketProvider = {
   name: 'demo',
-  getQuote: async (t) => demoQuote(t),
+  getQuote: async (t, maxAgeSec) => {
+    const q = demoQuote(t);
+    if (!q || maxAgeSec == null) return q;
+    // Small time-based wobble so the live list visibly ticks in demo mode.
+    const wobble = Math.sin(Date.now() / 20000 + t.length) * 0.002;
+    const price = Math.round(q.price * (1 + wobble) * 100) / 100;
+    return { ...q, price, change: price - q.prevClose, changePct: (price / q.prevClose - 1) * 100 };
+  },
   getProfile: async (t): Promise<CompanyProfile | null> => {
     const r = byTicker.get(t);
     return r ? { ticker: t, name: r[1], industry: r[2], marketCap: r[3] * 1000 } : null;

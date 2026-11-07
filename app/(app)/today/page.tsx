@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { getHoldings } from '@/lib/portfolio';
 import { analyzeHoldings, buildPortfolio, getMarketOverview, getUniverse, getWeekAhead, topMovers } from '@/lib/data';
 import { buildBrief } from '@/lib/brief';
-import { BriefPanel, FearGreedPanel, Heatmap, PortfolioPanel, SectorRotation, WeekAhead } from '@/components/today';
+import { BriefPanel, FearGreedPanel, Heatmap, SectorRotation, WeekAhead } from '@/components/today';
+import { LivePortfolio } from '@/components/LivePortfolio';
+import { usSession } from '@/lib/marketHours';
 import { LiveMovers } from '@/components/LiveMovers';
 
 export const metadata: Metadata = { title: 'Today' };
@@ -33,7 +35,18 @@ export default async function TodayPage() {
 
   return (
     <>
-      <PortfolioPanel pf={pf} stocks={stocks} spyPct={overview.spy?.changePct ?? null} qqqPct={overview.qqq?.changePct ?? null} />
+      <LivePortfolio
+        rows={holdings.map((h) => {
+          const s = stocks.find((x) => x.ticker === h.ticker);
+          return {
+            ticker: h.ticker, name: s?.name ?? h.ticker, industry: s?.industry ?? '', shares: h.shares, avgCost: h.avgCost,
+            price: s?.quote?.price ?? null, prevClose: s?.quote?.prevClose ?? null,
+          };
+        })}
+        spyPct={overview.spy?.changePct ?? null}
+        qqqPct={overview.qqq?.changePct ?? null}
+        initialSession={usSession()}
+      />
       <div className="cols">
         <div className="main-col">
           <BriefPanel brief={brief} />
