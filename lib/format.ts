@@ -7,6 +7,13 @@ export function money(v: number | null | undefined, digits = 2): string {
   return '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
+/** Earnings per share: keeps the minus sign for losses, and adds a decimal for tiny values. */
+export function eps(v: number | null | undefined): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  const digits = Math.abs(v) < 0.1 && v !== 0 ? 3 : 2;
+  return (v < 0 ? MINUS : '') + money(v, digits);
+}
+
 export function signedMoney(v: number | null | undefined, digits = 2): string {
   if (v == null || !Number.isFinite(v)) return '—';
   const sign = v > 0 ? '+' : v < 0 ? MINUS : '';

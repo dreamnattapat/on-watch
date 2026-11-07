@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { StockAnalysis } from '@/lib/data';
 import { STAGE_MEANING, STAGE_NAMES, type Stage } from '@/lib/analysis/stage';
-import { arrowPct, money, num, pct, signedMoney, timeAgo, tone } from '@/lib/format';
+import { arrowPct, eps, money, num, pct, signedMoney, timeAgo, tone } from '@/lib/format';
 import { Badge, VerdictBadge } from './ui';
 import type { Holding } from '@/lib/portfolio';
 import { bangkokTimeLabel, daysUntil, longDate, sessionLabel, shortDate, whenLabel } from '@/lib/earnings';
@@ -41,7 +41,9 @@ function EarningsSection({ s }: { s: StockAnalysis }) {
           </div>
           <p style={{ fontSize: 14 }}>
             Reports {sessionLabel(e.hour)}{bkk ? <> (<span className="bold">{bkk}</span>)</> : null}.
-            {e.epsEstimate != null && <> Analysts expect earnings of <span className="bold">{money(e.epsEstimate)}</span> per share.</>}
+            {e.epsEstimate != null && (e.epsEstimate < 0
+              ? <> Analysts expect a <span className="bold">loss of {money(e.epsEstimate, Math.abs(e.epsEstimate) < 0.1 ? 3 : 2)}</span> per share.</>
+              : <> Analysts expect earnings of <span className="bold">{eps(e.epsEstimate)}</span> per share.</>)}
           </p>
           {days != null && days <= 7 && <p className="callout">Earnings days often bring the biggest price swings of the quarter. Expect a bigger move than usual.</p>}
         </>
@@ -57,15 +59,15 @@ function EarningsSection({ s }: { s: StockAnalysis }) {
                 return (
                   <tr key={h.period}>
                     <th scope="row">Q{h.quarter} {h.year}</th>
-                    <td>{money(h.estimate)}</td>
-                    <td className="bold">{money(h.actual)}</td>
+                    <td className={tone(h.estimate) === 'down' ? 'down' : ''}>{eps(h.estimate)}</td>
+                    <td className={`bold ${tone(h.actual) === 'down' ? 'down' : ''}`}>{eps(h.actual)}</td>
                     <td><span className={`badge ${beat ? 'good' : 'poor'}`}>{beat ? 'Beat' : 'Miss'}{h.surprisePct != null ? ` ${pct(h.surprisePct)}` : ''}</span></td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <p className="small">Earnings per share: what analysts expected vs. what the company reported.</p>
+          <p className="small">Earnings per share: what analysts expected vs. what the company reported.{hist.some((h) => (h.actual ?? 0) < 0) && ' Red figures are losses; a smaller loss than expected counts as a beat.'}</p>
         </>
       )}
     </section>

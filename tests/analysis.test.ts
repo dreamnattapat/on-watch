@@ -193,3 +193,12 @@ describe('earnings dates', () => {
     expect(whenLabel(10)).toBe('Next week');
   });
 });
+
+import { eps } from '../lib/format';
+describe('eps format', () => {
+  it('keeps the minus sign for losses', () => {
+    expect(eps(-0.07)).toBe('−$0.070');
+    expect(eps(-0.11)).toBe('−$0.11');
+    expect(eps(1.234)).toBe('$1.23');
+  });
+});
