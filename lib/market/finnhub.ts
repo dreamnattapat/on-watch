@@ -75,7 +75,10 @@ export function parseMetrics(json: unknown): Metrics {
     epsAvg5y,
     epsGrowth: pick(m, ['epsGrowth5Y', 'epsGrowth3Y', 'epsGrowthTTMYoy']),
     revenueGrowth: pick(m, ['revenueGrowthTTMYoy', 'revenueGrowth3Y', 'revenueGrowth5Y']),
+    revenueGrowth3y: pick(m, ['revenueGrowth3Y', 'revenueGrowth5Y']),
+    revenueGrowthQ: pick(m, ['revenueGrowthQuarterlyYoy']),
     netMargin: pick(m, ['netProfitMarginTTM', 'netProfitMarginAnnual']),
+    grossMargin: pick(m, ['grossMarginTTM', 'grossMarginAnnual']),
     debtToEquity: de,
     dividendYield: pick(m, ['dividendYieldIndicatedAnnual', 'currentDividendYieldTTM']),
     dividendPerShare: pick(m, ['dividendPerShareTTM', 'dividendPerShareAnnual', 'dividendsPerShareTTM']),
@@ -155,6 +158,11 @@ export function createFinnhub(key: string): MarketProvider {
       return (arr ?? []).slice(0, 4).map((e) => ({
         period: e.period, quarter: e.quarter, year: e.year, actual: e.actual ?? null, estimate: e.estimate ?? null, surprisePct: e.surprisePercent ?? null,
       } satisfies EarningsResult));
+    },
+
+    async getPeers(ticker) {
+      const arr = await get<string[]>('/stock/peers', { symbol: ticker }, 604800, key);
+      return (arr ?? []).filter((t) => t !== ticker && /^[A-Z][A-Z.]{0,5}$/.test(t)).slice(0, 8);
     },
 
     async getRecommendation(ticker) {

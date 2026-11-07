@@ -136,7 +136,8 @@ function demoMetrics(t: string): Metrics | null {
   const salesPerShare = margin > 0 ? eps / (margin / 100) : price / 4;
   return {
     ...EMPTY_METRICS,
-    pe, peHistoryAvg: peHist, eps, epsAvg5y: eps * 0.9, epsGrowth, revenueGrowth: revGrowth, netMargin: margin,
+    pe, peHistoryAvg: peHist, eps, epsAvg5y: eps * 0.9, epsGrowth, revenueGrowth: revGrowth, revenueGrowth3y: revGrowth * 0.9,
+    revenueGrowthQ: revGrowth * 1.05, netMargin: margin, grossMargin: Math.min(90, Math.max(margin + 25, 20)),
     debtToEquity: de, dividendYield: divYield, dividendPerShare: (price * divYield) / 100,
     bookValuePerShare: roe > 0 ? eps / (roe / 100) : price / 3, salesPerShare, ps: price / salesPerShare,
     pb: roe > 0 ? price / (eps / (roe / 100)) : 3, fcfPerShare: eps * 0.95, roe, beta,
@@ -203,6 +204,7 @@ export const demoProvider: MarketProvider = {
     });
   },
   getRecommendation: async (): Promise<RecommendationTrend | null> => null,
+  getPeers: async (): Promise<string[]> => [],
   getWeekly: async (t) => demoWeekly(t),
   getDaily: async (t) => demoDaily(t),
 };

@@ -171,11 +171,15 @@ function Detail({ s, holding }: { s: StockAnalysis; holding?: Holding }) {
           <div className="kicker">Valuation check</div>
           {v && v.verdict ? (
             <>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 12 }}>
-                <h2 className={`head ${v.verdict === 'Over' ? 'down' : v.verdict === 'Under' ? 'up' : ''}`} style={{ fontSize: 40, lineHeight: 1 }}>
-                  {v.verdict === 'Under' ? 'Undervalued' : v.verdict === 'Over' ? 'Overvalued' : 'Fairly valued'}
-                </h2>
-                <span style={{ fontSize: 14 }}>Fair value about {money(v.fair)} ({pct(v.upsidePct)} vs. today).</span>
+              <div className="stack" style={{ gap: 4 }}>
+                <h2 className={`head ${v.verdict === 'Over' ? 'down' : v.verdict === 'Under' ? 'up' : ''}`} style={{ fontSize: 38, lineHeight: 1 }}>{v.verdictText}</h2>
+                <span style={{ fontSize: 14 }}>
+                  Fair value about <span className="bold">{money(v.fair)}</span>
+                  {v.upsidePct != null && <> · price is <span className={`bold ${v.upsidePct >= 0 ? 'up' : 'down'}`}>{Math.abs(Math.round(v.upsidePct))}% {v.upsidePct >= 0 ? 'below' : 'above'}</span> it</>}
+                </span>
+                <span style={{ fontSize: 13 }}>
+                  Confidence: <Badge kind={v.confidence === 'High' ? 'good' : v.confidence === 'Low' ? 'poor' : 'fair'}>{v.confidence}</Badge> <span className="small">{v.confidenceWhy}</span>
+                </span>
               </div>
               <div className="typebox">
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
@@ -183,33 +187,85 @@ function Detail({ s, holding }: { s: StockAnalysis; holding?: Holding }) {
                 </div>
                 <p style={{ fontSize: 14 }}>{v.typeWhy}</p>
               </div>
-              {v.low != null && v.high != null && (
-                <div role="img" aria-label={`Fair value range ${money(v.low)} to ${money(v.high)}; price ${money(price)}`} className="stack" style={{ gap: 4 }}>
-                  <div className="range">
-                    <div className="track" />
-                    <div className="band" style={{ left: pos(v.low), width: `calc(${pos(v.high)} - ${pos(v.low)})` }} />
-                    <div className="mark" style={{ left: pos(price) }}><span className="label" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>Price {money(price)}</span><span /></div>
+
+              {v.scenarios && (
+                <div className="stack" style={{ gap: 6 }}>
+                  <div className="label">Three possible futures</div>
+                  <div className="table-wrap">
+                    <table className="t">
+                      <thead><tr><th>Case</th><th>Revenue growth</th><th>Profit margin</th><th>Value</th></tr></thead>
+                      <tbody>
+                        {v.scenarios.map((sc) => (
+                          <tr key={sc.name}>
+                            <th scope="row">{sc.name === 'Bear' ? 'Bear (things go badly)' : sc.name === 'Bull' ? 'Bull (things go great)' : 'Base (current pace)'}</th>
+                            <td>{Math.round(sc.growth)}%/yr</td>
+                            <td>{Math.round(sc.margin)}%</td>
+                            <td className={`bold ${sc.value != null && sc.value >= price ? 'up' : ''}`}>{money(sc.value)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="range-labels num"><span style={{ left: pos(v.low) }}>{money(v.low)}</span><span style={{ left: pos(v.high) }}>{money(v.high)}</span></div>
-                  <span className="small">Grey band = fair value range. Red line = today’s price.</span>
+                  <p className="small">Growth holds at the rate shown for 3 years, then slows to 3% a year by year 10. The profit margin is reached by year 7.</p>
                 </div>
               )}
-              <table className="t">
-                <thead><tr><th>Method</th><th>Weight</th><th>Fair value</th><th>Reading</th></tr></thead>
-                <tbody>
-                  {v.methods.map((m) => (
-                    <tr key={m.key}>
-                      <th scope="row">{m.name}<div className="small" style={{ fontWeight: 400 }}>{m.note}</div></th>
-                      <td>{m.weight > 0 ? `${Math.round(m.weight * 100)}%` : m.fair == null && !m.text ? '—' : 'Check'}</td>
-                      <td className="bold" style={{ whiteSpace: 'nowrap' }}>{m.text ?? money(m.fair)}</td>
-                      <td>{m.reading ? <Badge kind={READ_CLASS[m.reading]}>{m.reading}</Badge> : <span className="small">n/a</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {v.impliedGrowth != null && v.type === 'High growth, low profit' && (
-                <p className="callout"><span className="bold">Reverse DCF:</span> today’s price assumes about {Math.round(v.impliedGrowth)}% cash-flow growth every year for five years, then slowing.</p>
+
+              {v.impliedGrowth != null && v.recentGrowth != null && v.type !== 'Steady & profitable' && (
+                <p className="callout">
+                  <span className="bold">What the price assumes:</span>{' '}
+                  {v.impliedGrowth >= 119
+                    ? <>today’s price needs revenue to grow more than 120% a year for years, far above the {Math.round(v.recentGrowth)}% it grew recently.</>
+                    : <>today’s price needs revenue to grow about <span className="bold">{Math.round(v.impliedGrowth)}% a year</span> (slowing over 10 years) and reach a {Math.round(v.targetMargin ?? 0)}% profit margin. Recently it grew <span className="bold">{Math.round(v.recentGrowth)}%</span>.</>}
+                  {' '}{v.impliedGrowth > v.recentGrowth * 1.3
+                    ? 'The market expects a big speed-up, often from new products. Possible, but it leaves little room for disappointment.'
+                    : v.impliedGrowth < v.recentGrowth * 0.75
+                      ? 'The market expects growth to slow sharply. If it doesn’t, the stock looks cheap.'
+                      : 'That’s close to its recent pace, so the price looks reasonable if growth holds.'}
+                </p>
               )}
+
+              {v.low != null && v.high != null && (() => {
+                const close = Math.abs(parseFloat(pos(v.high)) - parseFloat(pos(v.low))) < 22;
+                return (
+                  <div role="img" aria-label={`Fair value range ${money(v.low)} to ${money(v.high)}; price ${money(price)}`} className="stack" style={{ gap: 4 }}>
+                    <div className="range">
+                      <div className="track" />
+                      <div className="band" style={{ left: pos(v.low), width: `max(4px, calc(${pos(v.high)} - ${pos(v.low)}))` }} />
+                      <div className="mark" style={{ left: `clamp(40px, ${pos(price)}, calc(100% - 40px))` }}><span className="label" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>Price {money(price)}</span><span /></div>
+                    </div>
+                    <div className="range-labels num">
+                      {close
+                        ? <span style={{ left: `clamp(48px, ${pos((v.low + v.high) / 2)}, calc(100% - 48px))`, whiteSpace: 'nowrap' }}>{money(v.low, 0)}–{money(v.high, 0)}</span>
+                        : <><span style={{ left: `max(24px, ${pos(v.low)})` }}>{money(v.low, 0)}</span><span style={{ left: `min(calc(100% - 24px), ${pos(v.high)})` }}>{money(v.high, 0)}</span></>}
+                    </div>
+                    <span className="small">Grey band = {v.scenarios && v.type === 'High growth, low profit' ? 'bear to bull case' : 'fair value range'}. Red line = today’s price.</span>
+                  </div>
+                );
+              })()}
+
+              <div className="table-wrap">
+                <table className="t">
+                  <thead><tr><th>Method</th><th>Weight</th><th>Fair value</th><th>Reading</th></tr></thead>
+                  <tbody>
+                    {v.methods.map((m) => (
+                      <tr key={m.key}>
+                        <th scope="row">{m.name}<div className="small" style={{ fontWeight: 400 }}>{m.note}</div></th>
+                        <td>{m.weight > 0 ? `${Math.round(m.weight * 100)}%` : m.text ? 'Check' : '—'}</td>
+                        <td className="bold" style={{ whiteSpace: 'nowrap' }}>{m.text ?? money(m.fair)}</td>
+                        <td>{m.reading ? <Badge kind={READ_CLASS[m.reading]}>{m.reading}</Badge> : <span className="small">no data</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {s.peerNames.length > 0 && <p className="small">Compared with: {s.peerNames.join(', ')}.</p>}
+              {s.recommendation && (() => {
+                const r = s.recommendation;
+                const buy = r.strongBuy + r.buy, sell = r.sell + r.strongSell;
+                return buy + r.hold + sell > 0
+                  ? <p style={{ fontSize: 13 }}><span className="bold">Analysts’ view:</span> {buy} buy · {r.hold} hold · {sell} sell.</p>
+                  : null;
+              })()}
               <p className="note">Not investment advice. Simple models; estimates can be far off.</p>
             </>
           ) : <p className="note">Not enough financial data to value this stock.</p>}

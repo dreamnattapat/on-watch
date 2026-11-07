@@ -42,7 +42,7 @@ describe('valuation', () => {
 
   it('blends methods and renormalises weights when some are missing', () => {
     const m = { ...EMPTY_METRICS, eps: 10, pe: 20, peHistoryAvg: 20, fcfPerShare: 10, epsGrowth: 6, revenueGrowth: 5, netMargin: 20 };
-    const v = valueStock('X', 200, null, m, { pe: null, ps: null });
+    const v = valueStock('X', 200, null, m, { pe: null, ps: null, growth: null });
     expect(v.type).toBe('Steady & profitable');
     const used = v.methods.filter((x) => x.fair != null);
     expect(used.length).toBe(2); // peers missing
@@ -53,7 +53,7 @@ describe('valuation', () => {
   });
 
   it('returns no verdict without data', () => {
-    const v = valueStock('X', 50, null, EMPTY_METRICS, { pe: null, ps: null });
+    const v = valueStock('X', 50, null, EMPTY_METRICS, { pe: null, ps: null, growth: null });
     expect(v.verdict).toBeNull();
   });
 });
@@ -200,5 +200,42 @@ describe('eps format', () => {
     expect(eps(-0.07)).toBe('−$0.070');
     expect(eps(-0.11)).toBe('−$0.11');
     expect(eps(1.234)).toBe('$1.23');
+  });
+});
+
+import { revenueDcf, impliedRevenueGrowth, targetMarginFor } from '../lib/analysis/valuation';
+describe('growth-company valuation', () => {
+  // Roughly Rocket Lab: ~$1.15 revenue per share, ~38% growth, still losing money.
+  const rklb = { ...EMPTY_METRICS, eps: -0.25, pe: null, salesPerShare: 1.15, revenueGrowth: 38, revenueGrowthQ: 40, revenueGrowth3y: 35, netMargin: -30, grossMargin: 30, beta: 2 };
+  const profile = { ticker: 'RKLB', name: 'Rocket Lab', industry: 'Aerospace & Defense', marketCap: 25000 };
+  const peers = { pe: null, ps: 12, growth: 25 };
+
+  it('values an unprofitable grower with scenarios, not a tiny sales multiple', () => {
+    const v = valueStock('RKLB', 53, profile, rklb, peers);
+    expect(v.type).toBe('High growth, low profit');
+    expect(v.scenarios).not.toBeNull();
+    const [bear, base, bull] = v.scenarios!;
+    expect(bear.value!).toBeLessThan(base.value!);
+    expect(base.value!).toBeLessThan(bull.value!);
+    expect(v.fair!).toBeGreaterThan(6.5); // the old model said ~$6
+    expect(v.impliedGrowth!).toBeGreaterThan(v.recentGrowth!);
+    expect(v.confidence).toBe('Low');
+    expect(['Priced for optimism', 'Priced above even the bull case']).toContain(v.verdictText);
+  });
+
+  it('calls it undervalued when the price is below the bear case', () => {
+    const v = valueStock('RKLB', 1, profile, rklb, peers);
+    expect(v.verdict).toBe('Under');
+  });
+
+  it('revenue DCF rises with growth and inverts cleanly', () => {
+    const a = revenueDcf(10, 10, 5, 15)!, b = revenueDcf(10, 30, 5, 15)!;
+    expect(b).toBeGreaterThan(a);
+    expect(impliedRevenueGrowth(b, 10, 5, 15)!).toBeCloseTo(30, 0);
+  });
+
+  it('caps target margin by gross margin', () => {
+    expect(targetMarginFor('Software', 80)).toBe(22);
+    expect(targetMarginFor('Software', 20)).toBe(9);
   });
 });

@@ -29,7 +29,12 @@ export interface Metrics {
   /** Expected / recent earnings growth, % per year. */
   epsGrowth: number | null;
   revenueGrowth: number | null;
+  /** Revenue growth over ~3 years, % per year. */
+  revenueGrowth3y: number | null;
+  /** Latest quarter's revenue vs. the same quarter a year ago, %. */
+  revenueGrowthQ: number | null;
   netMargin: number | null;
+  grossMargin: number | null;
   debtToEquity: number | null;
   dividendYield: number | null;
   dividendPerShare: number | null;
@@ -105,6 +110,8 @@ export interface MarketProvider {
   /** The last few reported quarters, newest first. */
   getEarningsHistory(ticker: string): Promise<EarningsResult[]>;
   getRecommendation(ticker: string): Promise<RecommendationTrend | null>;
+  /** Comparable companies in the same industry. */
+  getPeers(ticker: string): Promise<string[]>;
   /** About two years of weekly bars, oldest first. */
   getWeekly(ticker: string): Promise<Bar[]>;
   /** About one year of daily bars, oldest first. */
@@ -113,6 +120,6 @@ export interface MarketProvider {
 
 export const EMPTY_METRICS: Metrics = {
   pe: null, peHistoryAvg: null, ps: null, pb: null, eps: null, epsAvg5y: null, epsGrowth: null,
-  revenueGrowth: null, netMargin: null, debtToEquity: null, dividendYield: null, dividendPerShare: null,
+  revenueGrowth: null, revenueGrowth3y: null, revenueGrowthQ: null, netMargin: null, grossMargin: null, debtToEquity: null, dividendYield: null, dividendPerShare: null,
   bookValuePerShare: null, salesPerShare: null, fcfPerShare: null, roe: null, beta: null, high52: null, low52: null,
 };

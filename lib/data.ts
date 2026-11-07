@@ -1,5 +1,6 @@
 import { market, getQuotes } from './market';
-import type { Bar, CompanyProfile, EarningsEvent, EarningsResult, Metrics, NewsItem, Quote } from './market/types';
+import type { Bar, CompanyProfile, EarningsEvent, EarningsResult, Metrics, NewsItem, Quote, RecommendationTrend } from './market/types';
+import { recentRevenueGrowth } from './analysis/valuation';
 import { SECTORS, UNIVERSE, UNIVERSE_TICKERS, sectorEtfFor } from './universe';
 import { valueStock, type PeerStats, type Valuation } from './analysis/valuation';
 import { analyzeStage, findSupport, type StageResult } from './analysis/stage';
@@ -39,6 +40,26 @@ export function peerStatsFor(ticker: string, sector: string | null, rows: Univer
   return {
     pe: median(use.map((r) => r.metrics!.pe ?? NaN).filter((v) => v > 0 && v < 80)),
     ps: median(use.map((r) => r.metrics!.ps ?? NaN).filter((v) => v > 0 && v < 40)),
+    growth: median(use.map((r) => recentRevenueGrowth(r.metrics!) ?? NaN)),
+    source: pool.length >= 3 ? 'large companies in the same sector' : 'large US companies',
+  };
+}
+
+/** Peers from the company's own industry (Finnhub), falling back to the universe. */
+export async function industryPeerStats(ticker: string, sector: string | null, universe: UniverseRow[]): Promise<PeerStats & { names: string[] }> {
+  const fallback = { ...peerStatsFor(ticker, sector, universe), names: [] as string[] };
+  const peers = (await market.getPeers(ticker)).slice(0, 6);
+  if (peers.length < 3) return fallback;
+  const ms = (await Promise.all(peers.map(async (t) => [t, await market.getMetrics(t)] as const)))
+    .filter((x): x is readonly [string, Metrics] => x[1] != null);
+  const ps = median(ms.map(([, m]) => m.ps ?? NaN).filter((v) => v > 0 && v < 80));
+  if (ms.length < 3 || ps == null) return fallback;
+  return {
+    pe: median(ms.map(([, m]) => m.pe ?? NaN).filter((v) => v > 0 && v < 150)) ?? fallback.pe,
+    ps,
+    growth: median(ms.map(([, m]) => recentRevenueGrowth(m) ?? NaN)),
+    source: 'companies in the same industry',
+    names: ms.map(([t]) => t),
   };
 }
 
@@ -106,6 +127,8 @@ export interface StockAnalysis {
   news: NewsItem[];
   nextEarnings: EarningsEvent | null;
   earningsHistory: EarningsResult[];
+  recommendation: RecommendationTrend | null;
+  peerNames: string[];
 }
 
 async function savedWhy(ticker: string, day: string): Promise<WhyMoved | null> {
@@ -128,9 +151,11 @@ export async function analyzeStock(ticker: string, universe: UniverseRow[], spyW
     market.getNextEarnings(ticker),
     market.getEarningsHistory(ticker),
   ]);
+  const recommendation = await market.getRecommendation(ticker);
   const sector = profile ? sectorEtfFor(profile.industry) : null;
   const price = quote?.price ?? null;
-  const valuation = price && metrics ? valueStock(ticker, price, profile, metrics, peerStatsFor(ticker, sector, universe)) : null;
+  const peerStats = await industryPeerStats(ticker, sector, universe);
+  const valuation = price && metrics ? valueStock(ticker, price, profile, metrics, peerStats) : null;
   const stage = analyzeStage(weekly, spyWeekly);
   const support = price ? findSupport(weekly, price) : null;
   const rr = price ? riskReward(price, support, valuation?.fair ?? null) : null;
@@ -147,7 +172,7 @@ export async function analyzeStock(ticker: string, universe: UniverseRow[], spyW
       });
     }
   }
-  return { ticker, name: profile?.name ?? ticker, quote, valuation, stage, support, rr, mood, why, news: news.slice(0, 3), nextEarnings, earningsHistory };
+  return { ticker, name: profile?.name ?? ticker, quote, valuation, stage, support, rr, mood, why, news: news.slice(0, 3), nextEarnings, earningsHistory, recommendation, peerNames: peerStats.names };
 }
 
 export async function analyzeHoldings(holdings: Holding[], universe: UniverseRow[]): Promise<StockAnalysis[]> {
