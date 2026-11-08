@@ -30,6 +30,17 @@ export const env = {
   enableApple: process.env.NEXT_PUBLIC_ENABLE_APPLE === 'true',
 };
 
+/**
+ * Private mode: only these emails can use the site (comma-separated in
+ * ALLOWED_EMAILS). Set ALLOWED_EMAILS=* to let anyone sign up again.
+ */
+export function isAllowedEmail(email: string | null | undefined): boolean {
+  const raw = (process.env.ALLOWED_EMAILS || 'dreamnattapat@gmail.com').trim();
+  if (raw === '*') return true;
+  if (!email) return false;
+  return raw.toLowerCase().split(',').map((e) => e.trim()).includes(email.toLowerCase());
+}
+
 /** True when accounts are switched on (Supabase is configured). */
 export const authEnabled = Boolean(env.supabaseUrl && env.supabasePublishableKey);
 

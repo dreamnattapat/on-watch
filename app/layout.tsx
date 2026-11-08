@@ -5,6 +5,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
+  robots: { index: false, follow: false },
   title: { default: 'OnWatch — the market, read for you', template: '%s · OnWatch' },
   description: 'Free, personal stock briefs. We read the news, filings and social chatter, then tell you only what matters to the stocks you own.',
 };

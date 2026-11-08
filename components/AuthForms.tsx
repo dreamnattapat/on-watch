@@ -60,7 +60,7 @@ export function LoginForm({ next, enableApple, error }: { next: string; enableAp
   return (
     <div className="card">
       <h1 className="head" style={{ fontSize: 38, lineHeight: 1 }}>Welcome back</h1>
-      {error && <div role="alert" className="error">{error === 'link' ? 'That link has expired. Please log in again.' : 'Sign-in didn’t finish. Please try again.'}</div>}
+      {error && <div role="alert" className="error">{error === 'private' ? 'OnWatch is a private site. This account doesn’t have access.' : error === 'link' ? 'That link has expired. Please log in again.' : 'Sign-in didn’t finish. Please try again.'}</div>}
       <ProviderButtons enableApple={enableApple} />
       <div className="divider">or with email</div>
       <form action={action} className="stack" style={{ gap: 14 }}>

@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import { authEnabled, env } from '@/lib/config';
+import { authEnabled, env, isAllowedEmail } from '@/lib/config';
 import { createClient } from '@/lib/supabase/server';
 
 export interface FormState {
@@ -29,6 +29,7 @@ export async function signUp(_prev: FormState, form: FormData): Promise<FormStat
   const firstName = String(form.get('first_name') ?? '').trim().slice(0, 40);
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: 'Please enter a valid email address.' };
   if (password.length < 8) return { error: 'Your password needs at least 8 characters.' };
+  if (!isAllowedEmail(email)) return { error: 'OnWatch is a private site and isn’t taking new sign-ups.' };
 
   const supabase = (await createClient())!;
   const { data, error } = await supabase.auth.signUp({

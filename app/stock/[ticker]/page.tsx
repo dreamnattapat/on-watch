@@ -9,10 +9,9 @@ import { STAGE_NAMES } from '@/lib/analysis/stage';
 import { StockDetail } from '@/components/StockList';
 import { Badge, VerdictBadge } from '@/components/ui';
 import { PublicHeader } from '@/components/PublicHeader';
-import { SubscribeBox } from '@/components/SubscribeBox';
 import { PUBLIC_TICKERS } from '@/lib/popular';
 
-// Public, search-friendly page for one stock. Cached for 30 minutes.
+// Look up any stock (logged-in only). Cached for 30 minutes.
 export const revalidate = 1800;
 
 // Built on first visit, then served from cache and refreshed in the background.
@@ -93,22 +92,12 @@ export default async function PublicStockPage({ params }: { params: Promise<{ ti
           </div>
         </section>
 
-        <div style={{ padding: '16px 0' }}>
-          <SubscribeBox tickers={[s.ticker]} source={`stock:${s.ticker}`}
-            title={`Get ${s.ticker} in a free 2-minute morning brief`}
-            blurb={`Why ${s.ticker} moved, earnings reminders and valuation changes, every morning before you start your day. No spam, unsubscribe any time.`} />
-        </div>
 
         <StockDetail s={s} />
 
-        <section className="card" style={{ marginTop: 8 }}>
-          <h2 className="head" style={{ fontSize: 30 }}>Track {s.ticker} with the rest of your portfolio</h2>
-          <p style={{ fontSize: 15 }}>Add the stocks you own and OnWatch tells you each morning what changed, why, and what to watch next. Free, no credit card.</p>
-          <Link href={`/?ticker=${s.ticker}`} className="btn solid big" style={{ alignSelf: 'flex-start' }}>Create a free account →</Link>
-        </section>
 
         <nav aria-label="More stocks" style={{ paddingTop: 28 }}>
-          <div className="label" style={{ paddingBottom: 8 }}>More stock analyses</div>
+          <div className="label" style={{ paddingBottom: 8 }}>More stocks</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
             {others.map((t) => <Link key={t} href={`/stock/${t}`} className="bold" style={{ fontSize: 14, minHeight: 32, display: 'inline-flex', alignItems: 'center' }}>{t}</Link>)}
           </div>
